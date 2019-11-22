@@ -21,26 +21,33 @@ namespace WebAdvert.Web.BO
         }
         public async Task<SignupViewModel> CreateUser(SignupViewModel model)
         {
-            var user = _pool.GetUser(model.Email);          //We are using Email as userid.
-
-            if(user.Status != null)
+            try
             {
-                model.IsValid = false;
-                model.Message = USER_EXISTS;
+                var user = _pool.GetUser(model.Email);          //We are using Email as userid.
+
+                if (user.Status != null)
+                {
+                    model.IsValid = false;
+                    model.Message = USER_EXISTS;
+
+                    return model;
+                }
+
+                user.Attributes.Add(CognitoAttribute.Name.ToString(), model.Email);         //We are using Email as name just to get started.
+                var createdUser = await _userManager.CreateAsync(user, model.Password).ConfigureAwait(false);
+
+                if (createdUser.Succeeded)
+                {
+                    model.IsValid = true;
+                    model.Message = string.Format("{0} is created successfully.", model.Email);
+                }
 
                 return model;
             }
-
-            user.Attributes.Add(CognitoAttribute.Name.ToString(),model.Email);         //We are using Email as name just to get started.
-            var createdUser = await _userManager.CreateAsync(user, model.Password).ConfigureAwait(false);
-
-            if (createdUser.Succeeded)
+            catch(Exception ex)
             {
-                model.IsValid = true;
-                model.Message = string.Format("{0} is created successfully.", model.Email);
+                return model;
             }
-
-            return model;
         }
     }
 }
